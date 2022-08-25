@@ -1,0 +1,10 @@
+tweepy
+time
+operator
+concurrent.futures
+os
+flask
+authlib
+requests
+datetime
+itertools
