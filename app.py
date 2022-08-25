@@ -1,41 +1,36 @@
-# The user details get print in the console.
-# so you can do whatever you want to do instead
-# of printing it
-
+import os
 from flask import Flask, render_template, request, url_for, redirect
-from data import php_urls
-from scored_accounts import get_php_url, main, screen_name_to_id
+from scored_accounts import Scored
+
 
 
 app = Flask(__name__)
-app.secret_key = '9379992'
+app.secret_key = os.environ["APP_KEY"]
+app.config["SERVER_NAME"] = "127.0.0.1:5700"
 
 
-app.config['SERVER_NAME'] = '127.0.0.1:5700'
-screen_name_input = []
-
-
-@app.route('/', methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def index():
-    scored_accounts = {}
     if request.method == "POST":
         screen_name = request.form["name"]
-        user_id = screen_name_to_id(screen_name)
-        scored_accounts = [get_php_url(main(user_id), 11)]
-        print(scored_accounts)
-    return render_template("result.html", php_urls=scored_accounts)
+        searched_user = Scored(screen_name)
+        searched_user.compose_scored_account()
+        searched_user.get_scored_users_data()
+        searched_user_data = searched_user.searched_user_data
+        suspicious_mentions = searched_user.searched_user_suspicious_mentions
+        suspicious_mentions_count = len(suspicious_mentions)
+        connected_accounts_data = searched_user.scored_users_data
 
-
-@app.route('/result', methods=["GET", "POST"])
-def result():
-    return render_template("result.html", php_urls=php_urls)
+        return render_template(
+            "result.html",
+            searched_user_data=searched_user_data,
+            suspicious_mentions=suspicious_mentions,
+            connected_accounts_data=connected_accounts_data,
+            suspicious_mentions_count=suspicious_mentions_count,
+        )
+    else:
+        return render_template("index.html")
 
 
 if __name__ == "__main__":
-    app.run()
-    print(screen_name_input)
-    print("hello world")
-
-
-#TODO: most_retwetted_accs and most_replied_to_accounts remove self_account!!
-#TODO: retrive php urls without "_normal"
+    app.run(debug=True)

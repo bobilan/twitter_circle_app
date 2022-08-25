@@ -1,3 +1,5 @@
 # created by virtualenv automatically
-get php link.py
-data.py
+
+__pycache__
+pyvenv.cfg
+newrelic.ini
