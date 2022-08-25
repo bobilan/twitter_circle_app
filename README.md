@@ -1,2 +1,2 @@
 # twitter_circle_app
-Your social circle on Twitter
+Tool for alalysing crypto and NFT projects activity on Twitter.
