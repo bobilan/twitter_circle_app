@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, url_for, redirect
 from scored_accounts import Scored
-
+import newrelic.agent
 
 
 app = Flask(__name__)
@@ -10,6 +10,7 @@ app.config["SERVER_NAME"] = "127.0.0.1:5700"
 
 
 @app.route("/", methods=["GET", "POST"])
+@newrelic.agent.function_trace()
 def index():
     if request.method == "POST":
         screen_name = request.form["name"]

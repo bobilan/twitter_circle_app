@@ -6,13 +6,14 @@ from collections import Counter
 import concurrent.futures
 import os
 from suspisious_mentions import SUSPICIOUS_MENTIONS_LIST
-
+import newrelic.agent
 
 TWITTER_BEARER_TOKEN = os.environ["BEARER_TOKEN"]
 Client = tweepy.Client(TWITTER_BEARER_TOKEN)
 
 
 class Scored:
+    @newrelic.agent.function_trace()
     def __init__(self, screen_name):
         self.screen_name = screen_name.replace("@", "").replace(" ", "")
         self.searched_user_id = self.screen_name_to_id()
@@ -20,7 +21,11 @@ class Scored:
         self.searched_user_suspicious_mentions = {}
         self.scored_sorted_users = {}
         self.scored_users_data = []
+        self.times_connected_user_liked = {}
+        self.times_connected_user_replied = {}
+        self.times_connected_user_retweeted = {}
 
+    @newrelic.agent.function_trace()
     def screen_name_to_id(self):
         user = Client.get_user(
             username=self.screen_name,
@@ -50,6 +55,7 @@ class Scored:
 
         return self.searched_user_id
 
+    @newrelic.agent.function_trace()
     def get_suspicious_mentions(self) -> dict:
         suspicious_mentions = {}
         paginator = tweepy.Paginator(
@@ -66,11 +72,13 @@ class Scored:
         return self.searched_user_suspicious_mentions
 
     @staticmethod
+    @newrelic.agent.function_trace()
     def id_to_screen_name(accounts) -> list[tuple[str, int]]:
         accounts_map = {k: v for k, v in accounts}
         users = Client.get_users(ids=list(accounts_map.keys()))
         return [(u.username, accounts_map[u.id]) for u in users.data]
 
+    @newrelic.agent.function_trace()
     def most_liked_accounts(self):
         """
         Returns 10 most liked tweets' authors usernames, sorted by frequency
@@ -86,8 +94,11 @@ class Scored:
             for tweet in paginator.flatten(limit=500)  # change to 1000
             if tweet.author_id != self.searched_user_id
         ]  # actual working limit = 1000
-        return self.id_to_screen_name(Counter(author_id).most_common(10))
+        result = self.id_to_screen_name(Counter(author_id).most_common(10))
 
+        return result
+
+    @newrelic.agent.function_trace()
     def most_retweeted_accounts(self):
         paginator = tweepy.Paginator(
             Client.get_users_tweets,
@@ -104,6 +115,7 @@ class Scored:
         ]  # user's account is still present
         return Counter(retweeted_accounts).most_common(15)
 
+    @newrelic.agent.function_trace()
     def most_replied_to_accounts(self):
         paginator = tweepy.Paginator(
             Client.get_users_tweets,
@@ -123,6 +135,7 @@ class Scored:
         ]
         return self.id_to_screen_name(Counter(replied_to_accounts).most_common(10))
 
+    @newrelic.agent.function_trace()
     def compose_scored_account(self):
         """
         Function takes results of user activities in form of ("user, interacted with", number of interactions)
@@ -133,35 +146,40 @@ class Scored:
         """
         try:
             with concurrent.futures.ThreadPoolExecutor() as executor:
-                t0 = executor.submit(self.screen_name_to_id)
                 t1 = executor.submit(self.most_liked_accounts)
                 t2 = executor.submit(self.most_retweeted_accounts)
                 t3 = executor.submit(self.most_replied_to_accounts)
                 t4 = executor.submit(self.get_suspicious_mentions)
 
-                most_liked_accs = dict(t1.result(timeout=60))
-                most_retweeted_accs = dict(t2.result(timeout=60))
-                most_replied_to_accs = dict(t3.result(timeout=60))
-                self.searched_user_suspicious_mentions = t4.result(timeout=60)
+            self.times_connected_user_liked = dict(t1)
+            self.times_connected_user_retweeted = dict(t2)
+            self.times_connected_user_replied = dict(t3)
+            self.searched_user_suspicious_mentions = t4
         except ConnectionError:
             print("Oops! It seems we lost connection")
         except TimeoutError:
             print("Oops! For some reason response took to long:(")
 
+        scored_accounts = self.compile_scored_accounts()
+        self.scored_sorted_users = dict(itertools.islice(scored_accounts.items(), 10))
+        return self.scored_sorted_users
+
+    @newrelic.agent.function_trace()
+    def compile_scored_accounts(self):
         score_accounts = {
-            key: round(most_liked_accs.get(key, 0))
-            + round(most_retweeted_accs.get(key, 0) * 2)
-            + round(most_replied_to_accs.get(key, 0) * 1.25)
-            for key in set(most_liked_accs)
-            | set(most_retweeted_accs)
-            | set(most_replied_to_accs)
+            key: round(self.times_connected_user_retweeted.get(key, 0))
+                 + round(self.times_connected_user_retweeted.get(key, 0) * 2)
+                 + round(self.times_connected_user_replied.get(key, 0) * 1.25)
+            for key in set(self.times_connected_user_retweeted)
+                       | set(self.times_connected_user_retweeted)
+                       | set(self.times_connected_user_replied)
         }
         scored_accounts = dict(
             sorted(score_accounts.items(), key=operator.itemgetter(1), reverse=True)
         )
-        self.scored_sorted_users = dict(itertools.islice(scored_accounts.items(), 10))
-        return self.scored_sorted_users
+        return scored_accounts
 
+    @newrelic.agent.function_trace()
     def get_scored_users_data(self):
         users_selected_data = []
         searched_usernames = list(self.scored_sorted_users.keys())
@@ -194,8 +212,12 @@ class Scored:
                         "following_count"
                     ],
                     "tweet_count": users.data[user].public_metrics["tweet_count"],
+                    "times_liked": self.times_connected_user_liked.get(users.data[user].username, 0),
+                    "times_retweeted": self.times_connected_user_retweeted.get(users.data[user].username, 0),
+                    "times_replied": self.times_connected_user_replied.get(users.data[user].username, 0),
                 }
             )
+
         self.scored_users_data = users_selected_data
 
         return self.scored_users_data

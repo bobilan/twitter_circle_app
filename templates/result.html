@@ -30,10 +30,11 @@
                             <br><b>Tweets count:</b> <span
                                 class="badge bg-info">{{searched_user_data.tweet_count}}</span>
                             <br><b>Location:</b> <span class="badge bg-info">{{searched_user_data.location}}</span>
+
                     </div>
                 </div>
 
-                <div class="card-body-tweets overflow-auto card-text bg-light">r
+                <div class="card-body-tweets overflow-auto card-text bg-light">
                     <p class="card-title px-2"><b>Suspicious mentions:</b> <span class="badge bg-danger">{{suspicious_mentions_count}}</span>
                     </p>
                     <p>
@@ -78,6 +79,12 @@
                         <br><b>Followers:</b> <span class="badge bg-success">{{user.followers_count}}</span>
                         <br><b>Following:</b> <span class="badge bg-success">{{user.following_count}}</span>
                         <br><b>Tweets count:</b> <span class="badge bg-success">{{user.tweet_count}}</span>
+                         <br><b>Times liked:</b> <span
+                                class="badge bg-info">{{user.times_liked}}</span>
+                          <br><b>Times replied :</b> <span
+                                class="badge bg-info">{{user.times_retweeted}}</span>
+                        <br><b>Times replied :</b> <span
+                                class="badge bg-info">{{user.times_replied}}</span>
                     </p>
                 </div>
 
