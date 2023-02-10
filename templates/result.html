@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+<div class="container mb-5">
+    <div class="row align-items-center ">
+        <div class="col-5 mx-auto my-4">
+            <div class="card">
+                <div class="card-header-results bg-success rounded-top">
+                    <a class="text-white text-center" href="https://twitter.com/{{searched_user_data.username}} target="_blank"> <p>@{{searched_user_data.username}} </p></a>
+                </div>
+                <div class="card-horizontal">
+                    <div class="img-square-wrapper">
+                        <a href="https://twitter.com/{{searched_user_data.username}}" target="_blank">
+                            <img width=130px,
+                               height=130px
+                               class="rounded-circle p-2 shadow"
+                               src="{{searched_user_data.profile_image_url}}"alt="Profile picture"></a>
+                    </div>
+
+                    <div class="card-body-results">
+                        <p class="card-text">
+                            <b>Name:</b> <span class="badge bg-info">{{searched_user_data.name}}</span>
+                            <br><b>Registered:</b> <span class="badge bg-info">{{searched_user_data.created_at}}</span>
+                            <br><b>Followers:</b> <span
+                                class="badge bg-info">{{searched_user_data.followers_count}}</span>
+                            <br><b>Following:</b> <span
+                                class="badge bg-info">{{searched_user_data.following_count}}</span>
+                            <br><b>Tweets count:</b> <span
+                                class="badge bg-info">{{searched_user_data.tweet_count}}</span>
+                            <br><b>Location:</b> <span class="badge bg-info">{{searched_user_data.location}}</span>
+
+                    </div>
+                </div>
+
+                <div class="card-body-tweets overflow-auto card-text bg-light">
+                    <p class="card-title px-2"><b>Suspicious mentions:</b> <span class="badge bg-danger">{{suspicious_mentions_count}}</span>
+                    </p>
+                    <p>
+                        {% for text, id in suspicious_mentions.items() %}
+
+                        {{ text }} <br> <a class="text-info small" href="https://twitter.com/i/web/status/{{ id }}"
+                                           target="_blank">Tweet: https://twitter.com/i/web/status/{{ id }} </a> <br>
+
+
+                        {% endfor %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="container my-4">
+    <p class="text-center pb-3 h5 "> Also we found connected accounts 👇 </p>
+    <div class="row g-3 justify-content-center">
+        {% for user in connected_accounts_data %}
+
+        <div class="col-sm-3 d-flex">
+            <div class="card rounded-top flex-fill">
+                <div class="card-header-results bg-info rounded-top text-white text-center flex-fill">
+                    <p class="small">Connection level: <span class="badge badge-secondary text-black bg-white">{{ user.connection_score }}</span>
+                    </p>
+                </div>
+                <div class="card-body-results flex-fill ">
+                    <a href="https://twitter.com/{{user.username}}" target="_blank"> <img
+                            class="card-img-top shadow rounded-circle" src="{{ user.profile_image_url}}"
+                            alt="Card image cap"></a>
+                </div>
+                <div class="card-body-results flex-fill">
+                    <p> <h5 class="card-title"><a href="https://twitter.com/{{user.username}}" target="_blank">@{{
+                    user.username }}</a></h5>
+                    </p>
+                    <p class="card-text">
+                        <b>Name:</b> <span class="badge bg-success">{{user.name}}</span>
+                        <br><b>Registered:</b> <span class="badge bg-success">{{user.created_at}}</span>
+                        <br><b>Followers:</b> <span class="badge bg-success">{{user.followers_count}}</span>
+                        <br><b>Following:</b> <span class="badge bg-success">{{user.following_count}}</span>
+                        <br><b>Tweets count:</b> <span class="badge bg-success">{{user.tweet_count}}</span>
+                         <br><b>Times liked:</b> <span
+                                class="badge bg-info">{{user.times_liked}}</span>
+                          <br><b>Times replied :</b> <span
+                                class="badge bg-info">{{user.times_retweeted}}</span>
+                        <br><b>Times replied :</b> <span
+                                class="badge bg-info">{{user.times_replied}}</span>
+                    </p>
+                </div>
+
+
+                <div class="card-body-bio overflow-auto card-text small bg-light">
+                    <p class="card-title overflow-auto"><b>Bio:</b> {{ user.bio }}
+                </div>
+            </div>
+        </div>
+
+        {% endfor %}
+
+    </div>
+</div>
+</div>
+</div>
+</div>
+
+{% endblock content %}
